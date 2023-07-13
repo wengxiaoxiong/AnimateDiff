@@ -94,10 +94,22 @@ def txt2img(args):
         # 如果userConfig.init_image不为空，则将init_image的值赋给model_config.init_image
         if userConfig.init_image != "" and userConfig.init_image != None:
             model_config.init_image = userConfig.init_image
-    
+
+        # 如果userConfig.init_image_url不为空，则下载到本地，用args.uuid命名，然后赋值给model_config.init_image
+        if userConfig.init_image_url != "" and userConfig.init_image_url != None:
+            init_image_url = userConfig.init_image_url
+            # 下载到本地
+            init_image_path = f"samples/{args.task_id}.jpg"
+            os.system(f"wget -O {init_image_path} {init_image_url}")
+            model_config.init_image = init_image_path
+            # 获取图片的width和height
+            from PIL import Image
+            img = Image.open(init_image_path)
+            args.W = img.size[0]
+            args.H = img.size[1]
 
 
-        
+
 
 
                 
@@ -247,6 +259,9 @@ class Config(BaseModel):
     n_prompt: list = ''
     seed:list = []
     random_seed:int =-1
+    H:int = 512
+    W:int = 512
+    L:int = 16
 
 
     def get(self, attribute, default=None):
@@ -273,6 +288,6 @@ app = FastAPI()
 @app.post("/text2gif")
 async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
     task_id = str(uuid.uuid4())
-    args = Args(userConfig=config,task_id=task_id)
+    args = Args(userConfig=config,task_id=task_id,L=config.L,W=config.W,H=config.H)
     background_tasks.add_task(txt2img,args)
     return {"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id}

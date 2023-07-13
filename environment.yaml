@@ -9,17 +9,17 @@ dependencies:
   - torchaudio==0.12.1
   - cudatoolkit=11.3
   - xformers
-  - uvicorn
-  - fastapi
   - pip
-  - oss2
-  - dotenv
-  - uuid
   - pip:
     - diffusers[torch]==0.11.1
     - transformers==4.25.1
     - imageio==2.27.0
     - gdown
+    - uvicorn
+    - fastapi
+    - oss2
+    - python-dotenv
+    - uuid
     - einops
     - omegaconf
     - safetensors

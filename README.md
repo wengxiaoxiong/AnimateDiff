@@ -1,9 +1,18 @@
 # 启动服务器
 
+
+1. 创建env，存放阿里云oss环境变量，当你的图算好后会上传
+
+env:
+```
+OSS_REGION="哈哈哈哈，哈哈哈哈哈"
+OSS_ACCESS_KEY_ID="哈哈哈哈，哈哈哈哈哈"
+OSS_ACCESS_KEY_SECRET="哈哈哈哈，哈哈哈哈哈"
+OSS_BUCKET="哈哈哈哈，哈哈哈哈哈"
+OSS_ENDPOINT="哈哈哈哈，哈哈哈哈哈"
 ```
 
-```
-
+2. 启动服务器（假装你已经做好原作者要求做的所有事情了
 ```
 uvicorn main:app --host 0.0.0.0 --port 6006 --reload
 ```
@@ -19,31 +28,41 @@ uvicorn main:app --host 0.0.0.0 --port 6006 --reload
 请求体：
 ```json
 {
+    // CKPT
     "base": "models/DreamBooth_LoRA/AnythingV5_v5PrtRE.safetensors",
-    "path": "models/DreamBooth_LoRA/genshinImpact_zhongli_v10.safetensors",
+    // LORA
+    "path": "models/DreamBooth_LoRA/genshinimpact_kirara_v2.safetensors",
     "additional_networks": [
         "models/DreamBooth_LoRA/LineLine2D.safetensors : 0.7"
     ],
-    "init_image": "configs/prompts/yoimiya-init.jpg",
+    // 基图，可选
+    "init_image_url": "https://oss.talesofai.cn/picture/e51d0ca9-a924-49f2-8ef1-b72cb738219e.jpeg",
+    // 动态模型，只能选一个
     "motion_module": [
-        //这里最多一个motion_module
         "models/Motion_Module/mm_sd_v14.ckpt"
+        // ,
+        // "models/Motion_Module/mm_sd_v15.ckpt"
     ],
-    "steps": 25,
+    "steps": 20,
     "guidance_scale": 7.5,
     "lora_alpha": 0.8,
     "seed": [],
     "prompt": [
-        "best quality, masterpiece, 1boy"
+        "best quality, masterpiece, kirara, 1girl, solo, green eyes, ahoge, hair ornament, light brown hair , happy , classroom,eating chocolate"
     ],
     "n_prompt": [
         "NSFW, lr, nsfw,(sketch, duplicate, ugly, huge eyes, text, logo, monochrome, worst face, (bad and mutated hands:1.3), (worst quality:2.0), (low quality:2.0), (blurry:2.0), horror, geometry, bad_prompt_v2, (bad hands), (missing fingers), multiple limbs, bad anatomy, (interlocked fingers:1.2), Ugly Fingers, (extra digit and hands and fingers and legs and arms:1.4), crown braid, ((2girl)), (deformed fingers:1.2), (long fingers:1.2),succubus wings,horn,succubus horn,succubus hairstyle, (bad-artist-anime), bad-artist, bad hand, grayscale, skin spots, acnes, skin blemishes"
     ],
-    "random_seed": -1
+    "random_seed": -1,
+    // 帧数
+    "L":16,
+    // 长和宽（如果有基图，就不适用了）
+    "W":512,
+    "H":512
 }
 ```
 
-响应例：
+响应体示例：
 ```json
 {
     "message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/8bc26b34-b030-4912-aacb-784ea30de97e.gif",
@@ -52,7 +71,7 @@ uvicorn main:app --host 0.0.0.0 --port 6006 --reload
 ```
 
 
-以下是原文
+以下是AnimateDiff项目的原文⬇️
 
 
 # AnimateDiff
