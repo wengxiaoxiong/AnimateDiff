@@ -12,6 +12,9 @@ dependencies:
   - uvicorn
   - fastapi
   - pip
+  - oss2
+  - dotenv
+  - uuid
   - pip:
     - diffusers[torch]==0.11.1
     - transformers==4.25.1

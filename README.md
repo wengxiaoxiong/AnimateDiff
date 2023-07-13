@@ -1,3 +1,13 @@
+# 启动服务器
+
+```
+
+```
+
+```
+uvicorn main:app --host 0.0.0.0 --port 6006 --reload
+```
+
 # API
 
 路径：/text2gif
