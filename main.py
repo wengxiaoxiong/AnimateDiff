@@ -56,9 +56,6 @@ def upload(local_file_path:str,task_id:str):
 
     
 
-
-
-
  # ==========================================
 # The reasoning process, where the text will be converted to gif and uploaded to Alibaba Cloud OSS
  # ==========================================
@@ -270,11 +267,7 @@ class Args:
 app = FastAPI()
 @app.post("/text2gif")
 async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
-
     task_id = str(uuid.uuid4())
     args = Args(userConfig=config,task_id=task_id)
     background_tasks.add_task(txt2img,args)
-
-   
-
     return {"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id}

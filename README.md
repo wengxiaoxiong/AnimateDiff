@@ -1,3 +1,50 @@
+# API
+
+路径：/text2gif
+
+方法：POST
+
+说明：定义ckpt、lora、prompt等参数，返回任务ID，当图片生成后，可以通过给定的url访问图片。
+
+请求体：
+```json
+{
+    "base": "models/DreamBooth_LoRA/AnythingV5_v5PrtRE.safetensors",
+    "path": "models/DreamBooth_LoRA/genshinImpact_zhongli_v10.safetensors",
+    "additional_networks": [
+        "models/DreamBooth_LoRA/LineLine2D.safetensors : 0.7"
+    ],
+    "init_image": "configs/prompts/yoimiya-init.jpg",
+    "motion_module": [
+        //这里最多一个motion_module
+        "models/Motion_Module/mm_sd_v14.ckpt"
+    ],
+    "steps": 25,
+    "guidance_scale": 7.5,
+    "lora_alpha": 0.8,
+    "seed": [],
+    "prompt": [
+        "best quality, masterpiece, 1boy"
+    ],
+    "n_prompt": [
+        "NSFW, lr, nsfw,(sketch, duplicate, ugly, huge eyes, text, logo, monochrome, worst face, (bad and mutated hands:1.3), (worst quality:2.0), (low quality:2.0), (blurry:2.0), horror, geometry, bad_prompt_v2, (bad hands), (missing fingers), multiple limbs, bad anatomy, (interlocked fingers:1.2), Ugly Fingers, (extra digit and hands and fingers and legs and arms:1.4), crown braid, ((2girl)), (deformed fingers:1.2), (long fingers:1.2),succubus wings,horn,succubus horn,succubus hairstyle, (bad-artist-anime), bad-artist, bad hand, grayscale, skin spots, acnes, skin blemishes"
+    ],
+    "random_seed": -1
+}
+```
+
+响应例：
+```json
+{
+    "message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/8bc26b34-b030-4912-aacb-784ea30de97e.gif",
+    "task_id": "8bc26b34-b030-4912-aacb-784ea30de97e"
+}
+```
+
+
+以下是原文
+
+
 # AnimateDiff
 
 This repository is the official implementation of [AnimateDiff](https://arxiv.org/abs/2307.04725).
