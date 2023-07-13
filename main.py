@@ -92,8 +92,12 @@ def txt2img(args):
             model_config.additional_networks = userConfig.additional_networks
 
         # 如果userConfig.init_image不为空，则将init_image的值赋给model_config.init_image
-        if userConfig.init_image != "":
+        if userConfig.init_image != "" and userConfig.init_image != None:
             model_config.init_image = userConfig.init_image
+    
+
+
+        
 
 
                 
@@ -231,6 +235,7 @@ class Config(BaseModel):
     path: str = 'models/DreamBooth_LoRA/genshin_impact_yoimiya.safetensors'
     additional_networks: list = []
     init_image: str = None
+    init_image_url: str = None
     motion_module: list = [
         "models/Motion_Module/mm_sd_v14.ckpt",
         "models/Motion_Module/mm_sd_v15.ckpt"
