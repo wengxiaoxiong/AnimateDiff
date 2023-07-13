@@ -253,7 +253,7 @@ class Config(BaseModel):
 # Data Structure for Args
 # ==========================================
 class Args:
-    def __init__(self, pretrained_model_path="models/StableDiffusion/stable-diffusion-v1-5", inference_config="configs/inference/inference.yaml", config="configs/custom_prompts/base.yml", L=16, W=512, H=512,userConfig=None,task_id=None):
+    def __init__(self, pretrained_model_path="models/StableDiffusion/stable-diffusion-v1-5", inference_config="configs/inference/inference.yaml", config="configs/prompts/server_base.yml", L=16, W=512, H=512,userConfig=None,task_id=None):
         self.pretrained_model_path = pretrained_model_path
         self.inference_config = inference_config
         self.config = config
@@ -277,4 +277,4 @@ async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
 
    
 
-    return {"message": "Text to GIF conversion started, you can check the status of conversion using the task_id", "task_id": task_id}
+    return {"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id}
