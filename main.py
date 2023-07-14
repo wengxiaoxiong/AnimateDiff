@@ -35,6 +35,8 @@ from dotenv import load_dotenv
 import oss2
 # uuid
 import uuid
+# JSONResponse
+from fastapi.responses import JSONResponse
 
 
  # ==========================================
@@ -280,14 +282,40 @@ class Args:
         self.userConfig = userConfig
         self.task_id = task_id
 
+#跨域设置
+app = FastAPI()
+
+from fastapi.middleware.cors import CORSMiddleware
+
+# 2、声明一个 源 列表；重点：要包含跨域的客户端 源
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://ops.talesofai.cn",
+    "https://ops.oss.talesofai.cn",
+]
+ 
+# 3、配置 CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # 允许访问的源
+    allow_credentials=True,  # 支持 cookie
+    allow_methods=["*"],  # 允许使用的请求方法
+    allow_headers=["*"]  # 允许携带的 Headers
+)
 
  # ==========================================
 # a rest api to start text2gif conversion , once the conversion is started it will run in background
  # ==========================================
-app = FastAPI()
+
 @app.post("/text2gif")
 async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
     task_id = str(uuid.uuid4())
     args = Args(userConfig=config,task_id=task_id,L=config.L,W=config.W,H=config.H)
     background_tasks.add_task(txt2img,args)
-    return {"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id}
+    # 支持跨域
+    response = JSONResponse(
+        content={"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+    return response

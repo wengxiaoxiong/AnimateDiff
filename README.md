@@ -15,6 +15,9 @@ OSS_ENDPOINT="哈哈哈哈，哈哈哈哈哈"
 2. 启动服务器（假装你已经做好原作者要求做的所有事情了
 ```
 uvicorn main:app --host 0.0.0.0 --port 6006 --reload
+<!-- 或是后台运行 -->
+nohup uvicorn main:app --host 0.0.0.0 --port 6006 --reload > server.log 2>&1 &
+
 ```
 
 # API
