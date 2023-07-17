@@ -5,5 +5,7 @@ __pycache__
 *.bin
 *.ckpt
 configs/custom_prompts
+scripts/animate_wxx.py
 samples
 models/StableDiffusion
+.env

@@ -1,3 +1,82 @@
+# 启动服务器
+
+
+1. 创建env，存放阿里云oss环境变量，当你的图算好后会上传
+
+env:
+```
+OSS_REGION="哈哈哈哈，哈哈哈哈哈"
+OSS_ACCESS_KEY_ID="哈哈哈哈，哈哈哈哈哈"
+OSS_ACCESS_KEY_SECRET="哈哈哈哈，哈哈哈哈哈"
+OSS_BUCKET="哈哈哈哈，哈哈哈哈哈"
+OSS_ENDPOINT="哈哈哈哈，哈哈哈哈哈"
+```
+
+2. 启动服务器（假装你已经做好原作者要求做的所有事情了
+```
+uvicorn main:app --host 0.0.0.0 --port 6006 --reload
+<!-- 或是后台运行 -->
+nohup uvicorn main:app --host 0.0.0.0 --port 6006 --reload > server.log 2>&1 &
+
+```
+
+# API
+
+路径：/text2gif
+
+方法：POST
+
+说明：定义ckpt、lora、prompt等参数，返回任务ID，当图片生成后，可以通过给定的url访问图片。
+
+请求体：
+```json
+{
+    // CKPT
+    "base": "models/DreamBooth_LoRA/AnythingV5_v5PrtRE.safetensors",
+    // LORA
+    "path": "models/DreamBooth_LoRA/genshinimpact_kirara_v2.safetensors",
+    "additional_networks": [
+        "models/DreamBooth_LoRA/LineLine2D.safetensors : 0.7"
+    ],
+    // 基图，可选
+    "init_image_url": "https://oss.talesofai.cn/picture/e51d0ca9-a924-49f2-8ef1-b72cb738219e.jpeg",
+    // 动态模型，只能选一个
+    "motion_module": [
+        "models/Motion_Module/mm_sd_v14.ckpt"
+        // ,
+        // "models/Motion_Module/mm_sd_v15.ckpt"
+    ],
+    "steps": 20,
+    "guidance_scale": 7.5,
+    "lora_alpha": 0.8,
+    "seed": [],
+    "prompt": [
+        "best quality, masterpiece, kirara, 1girl, solo, green eyes, ahoge, hair ornament, light brown hair , happy , classroom,eating chocolate"
+    ],
+    "n_prompt": [
+        "NSFW, lr, nsfw,(sketch, duplicate, ugly, huge eyes, text, logo, monochrome, worst face, (bad and mutated hands:1.3), (worst quality:2.0), (low quality:2.0), (blurry:2.0), horror, geometry, bad_prompt_v2, (bad hands), (missing fingers), multiple limbs, bad anatomy, (interlocked fingers:1.2), Ugly Fingers, (extra digit and hands and fingers and legs and arms:1.4), crown braid, ((2girl)), (deformed fingers:1.2), (long fingers:1.2),succubus wings,horn,succubus horn,succubus hairstyle, (bad-artist-anime), bad-artist, bad hand, grayscale, skin spots, acnes, skin blemishes"
+    ],
+    "random_seed": -1,
+    // 帧数
+    "L":16,
+    // 长和宽（如果有基图，就不适用了）
+    "W":512,
+    "H":512
+}
+```
+
+响应体示例：
+```json
+{
+    "message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/8bc26b34-b030-4912-aacb-784ea30de97e.gif",
+    "task_id": "8bc26b34-b030-4912-aacb-784ea30de97e"
+}
+```
+
+
+以下是AnimateDiff项目的原文⬇️
+
+
 # AnimateDiff
 
 This repository is the official implementation of [AnimateDiff](https://arxiv.org/abs/2307.04725).
