@@ -3,8 +3,7 @@ import datetime
 import inspect
 import os
 from omegaconf import OmegaConf
-
-from pydantic import BaseModel
+import requests
 import torch
 
 import diffusers
@@ -37,6 +36,18 @@ import oss2
 import uuid
 # JSONResponse
 from fastapi.responses import JSONResponse
+# 跨域
+from fastapi.middleware.cors import CORSMiddleware
+# 执行命令
+import subprocess
+
+from entity.Args import Args
+from entity.Config import Config
+
+from typing import List, Dict, Any
+
+from scripts.processingPrompts import extract_loras, extract_prompts, get_safetensors_path
+
 
 
  # ==========================================
@@ -55,7 +66,20 @@ def upload(local_file_path:str,task_id:str):
     oss_file_path = oss_path + task_id + '.gif'  # 上传后在OSS中的文件名，例如：'example.gif'
     if bucket.put_object_from_file(oss_file_path, local_file_path):
         print('上传成功'+oss_file_path)
-
+        # {
+        #     "message":"【捏Ta后台动画生成】你的动画生成完成啦，地址；oss_file_path"
+        # }
+        # 生成gif成功后，发送请求到飞书机器人
+        url = "https://www.feishu.cn/flow/api/trigger-webhook/6cb842427a11c01e979409eaa62edd5a"
+        # url = "https://www.feishu.cn/flow/api/trigger-webhook/30b8357f5a4dcd1f142756bca378b001"
+        data = {
+            "message": "【捏Ta后台动画生成】你的动画生成完成啦，地址：https://oss.talesofai.cn/" + oss_file_path
+        }
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post(url=url, json=data, headers=headers)
+        print(response.text)
     
 
  # ==========================================
@@ -104,11 +128,29 @@ def txt2img(args):
             init_image_path = f"samples/{args.task_id}.jpg"
             os.system(f"wget -O {init_image_path} {init_image_url}")
             model_config.init_image = init_image_path
-            # 获取图片的width和height
+
             from PIL import Image
+
+            # 打开图片
+            img = Image.open(init_image_path)
+
+            # 判断图片大小，如果width超过576，就等比例缩小为width=576，然后height也等比例缩小
+            if img.size[0] > 576:
+                ratio = 576 / img.size[0]  # 计算缩放比例
+                new_width = 576
+                new_height = int(img.size[1] * ratio)
+                if new_height % 8 != 0:
+                    new_height = new_height - (new_height % 8)
+                if new_width % 8 != 0:
+                    new_width = new_width - (new_width % 8)
+                img = img.resize((new_width, new_height))
+                img.save(init_image_path)
+
+            # 重新打开图片获取宽度和高度
             img = Image.open(init_image_path)
             args.W = img.size[0]
             args.H = img.size[1]
+
 
 
 
@@ -241,51 +283,10 @@ def txt2img(args):
 
 
 
-# ==========================================
-# Data Structure for Config
-# ==========================================
-class Config(BaseModel):
-    base: str = 'models/DreamBooth_LoRA/AnythingV5_v5PrtRE.safetensors'
-    path: str = 'models/DreamBooth_LoRA/genshin_impact_yoimiya.safetensors'
-    additional_networks: list = []
-    init_image: str = None
-    init_image_url: str = None
-    motion_module: list = [
-        "models/Motion_Module/mm_sd_v14.ckpt",
-        "models/Motion_Module/mm_sd_v15.ckpt"
-    ]
-    steps: int = 35
-    guidance_scale: float = 7.5
-    lora_alpha: float = 0.9
-    prompt: list = ''
-    n_prompt: list = ''
-    seed:list = []
-    random_seed:int =-1
-    H:int = 512
-    W:int = 512
-    L:int = 16
 
-
-    def get(self, attribute, default=None):
-        return getattr(self, attribute, default)
-# ==========================================
-# Data Structure for Args
-# ==========================================
-class Args:
-    def __init__(self, pretrained_model_path="models/StableDiffusion/stable-diffusion-v1-5", inference_config="configs/inference/inference.yaml", config="configs/prompts/server_base.yml", L=16, W=512, H=512,userConfig=None,task_id=None):
-        self.pretrained_model_path = pretrained_model_path
-        self.inference_config = inference_config
-        self.config = config
-        self.L = L
-        self.W = W
-        self.H = H
-        self.userConfig = userConfig
-        self.task_id = task_id
 
 #跨域设置
 app = FastAPI()
-
-from fastapi.middleware.cors import CORSMiddleware
 
 # 2、声明一个 源 列表；重点：要包含跨域的客户端 源
 origins = [
@@ -304,9 +305,25 @@ app.add_middleware(
     allow_headers=["*"]  # 允许携带的 Headers
 )
 
- # ==========================================
+@app.get("/lora/{lora_name}")
+def findLoraPath(lora_name: str):
+    # 执行命令并捕获输出
+    command = f'find /root/autodl-tmp/lora/prod/ -name "*{lora_name}*"'
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+    if result.returncode == 0:
+        output = result.stdout
+        output = output.replace("\n","")
+        print(output+"测试")
+        return output
+    else:
+        return f"Error: {result.stderr}"
+
+
+
+# ==========================================
 # a rest api to start text2gif conversion , once the conversion is started it will run in background
- # ==========================================
+# ==========================================
 
 @app.post("/text2gif")
 async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
@@ -319,3 +336,83 @@ async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
         headers={"Access-Control-Allow-Origin": "*"},
     )
     return response
+
+
+
+
+# ==========================================
+# Collection2gif
+# INPUT: Vtoken_list + init_image_url 
+# ==========================================
+@app.post("/collection2gif")
+def process_params(params: List[Dict[str, Any]]):
+    prompt = ''
+    for param in params:
+        # 处理每个参数
+        param_type = param.get("type")
+        value = param.get("value")
+
+        if(param_type != "character" and param_type != "style"):
+            prompt += value + ', '
+
+        # 在这里进行你的处理逻辑
+        # print(f"Processing parameter: {name}, {param_type}, {uuid}")
+    print(prompt)
+
+
+# ==========================================
+# 通过捏Ta存在的Task来创建gif
+# INPUT的是捏Ta的TaskID
+# ==========================================
+@app.get("/taskid2gif/{task_id}")
+async def taskid2gif(task_id: str,background_tasks: BackgroundTasks):
+    # 发送请求到捏Ta，获取信息
+    request_url = "https://api.talesofai.cn/internal/task/task?task_id=" + task_id
+    response = requests.get(request_url)
+    data = response.json()
+    # 处理信息
+    init_image_url = data["url"]
+    prompts = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["prompt"]
+    n_prompts = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["negative_prompt"]
+    base_model_name = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["base_model_name"]
+
+    # 创建config
+    config = Config()
+    config.base = get_safetensors_path(base_model_name)
+    config.init_image_url = init_image_url
+    config.prompt = [extract_prompts(prompts)]
+    config.n_prompt = [extract_prompts(n_prompts)]
+    config.motion_module = ["/root/autodl-tmp/Motion_Module/mm_sd_v15.ckpt"]
+    config.steps = 35
+    config.guidance_scale = 7.5
+    config.lora_alpha = 0.8
+
+
+    # 获取所有的lora_path
+    lora_list = extract_loras(prompts)
+    lora_path = []
+    for lora in lora_list:
+        lora_path.append(get_safetensors_path(lora))
+    if(len(lora_path)>=1):
+        config.path = lora_path[0]
+        lora_path.pop(0)
+    if(len(lora_path)>=1):
+        config.additional_networks = lora_path
+    print(config)
+
+
+    # 创建任务
+    animate_task_id = str(uuid.uuid4())
+    args = Args(userConfig=config,task_id=animate_task_id)
+    background_tasks.add_task(txt2img,args)
+    # 支持跨域
+    response = JSONResponse(
+        content={"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id},
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+    return response
+
+# print(background_tasks.tasks)
+@app.get("/current_task_list")
+async def current_task_list(background_tasks: BackgroundTasks):
+    return background_tasks.tasks
