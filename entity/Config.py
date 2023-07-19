@@ -4,7 +4,7 @@ from pydantic import BaseModel
 # ==========================================
 class Config(BaseModel):
     base: str = '/root/autodl-tmp/DreamBooth_LoRA/AnythingV5_v5PrtRE.safetensors'
-    path: str = None
+    path: str = ""
     additional_networks: list = []
     init_image: str = None
     init_image_url: str = None
@@ -12,7 +12,7 @@ class Config(BaseModel):
         "models/Motion_Module/mm_sd_v14.ckpt",
         "models/Motion_Module/mm_sd_v15.ckpt"
     ]
-    steps: int = 35
+    steps: int = 25
     guidance_scale: float = 7.5
     lora_alpha: float = 0.9
     prompt: list = ''

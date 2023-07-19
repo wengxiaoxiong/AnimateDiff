@@ -40,6 +40,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 # 执行命令
 import subprocess
+#消息队列
+import asyncio
 
 from entity.Args import Args
 from entity.Config import Config
@@ -48,7 +50,8 @@ from typing import List, Dict, Any
 
 from scripts.processingPrompts import extract_loras, extract_prompts, get_safetensors_path
 
-
+from concurrent.futures import ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=1)
 
  # ==========================================
 # Load AliOSS environment variables
@@ -225,7 +228,12 @@ def txt2img(args):
                     if hasattr(model_config, 'additional_networks') and len(model_config.additional_networks) > 0:
                         for lora_weights in model_config.additional_networks:
                             add_state_dict = {}
-                            (lora_path, lora_alpha) = lora_weights.split(':')
+                            if ':' in lora_weights:
+                                lora_path, lora_alpha = lora_weights.split(':')
+                            else:
+                                lora_path = lora_weights
+                                lora_alpha = "0.8"
+                                
                             print(f"loading lora {lora_path} with weight {lora_alpha}")
                             lora_alpha = float(lora_alpha.strip())
                             with safe_open(lora_path.strip(), framework="pt", device="cpu") as f:
@@ -284,7 +292,6 @@ def txt2img(args):
 
 
 
-
 #跨域设置
 app = FastAPI()
 
@@ -319,8 +326,6 @@ def findLoraPath(lora_name: str):
     else:
         return f"Error: {result.stderr}"
 
-
-
 # ==========================================
 # a rest api to start text2gif conversion , once the conversion is started it will run in background
 # ==========================================
@@ -339,27 +344,6 @@ async def start_text2gif(config:Config, background_tasks: BackgroundTasks):
 
 
 
-
-# ==========================================
-# Collection2gif
-# INPUT: Vtoken_list + init_image_url 
-# ==========================================
-@app.post("/collection2gif")
-def process_params(params: List[Dict[str, Any]]):
-    prompt = ''
-    for param in params:
-        # 处理每个参数
-        param_type = param.get("type")
-        value = param.get("value")
-
-        if(param_type != "character" and param_type != "style"):
-            prompt += value + ', '
-
-        # 在这里进行你的处理逻辑
-        # print(f"Processing parameter: {name}, {param_type}, {uuid}")
-    print(prompt)
-
-
 # ==========================================
 # 通过捏Ta存在的Task来创建gif
 # INPUT的是捏Ta的TaskID
@@ -372,9 +356,17 @@ async def taskid2gif(task_id: str,background_tasks: BackgroundTasks):
     data = response.json()
     # 处理信息
     init_image_url = data["url"]
-    prompts = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["prompt"]
-    n_prompts = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["negative_prompt"]
-    base_model_name = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["base_model_name"]
+    
+
+    if "ControlNetStableDiffusionProcessingTxt2Img" in data["params"]:
+        prompts = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["prompt"]
+        n_prompts = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["negative_prompt"]
+        base_model_name = data["params"]["ControlNetStableDiffusionProcessingTxt2Img"]["base_model_name"]
+    else:
+        prompts = data["params"]["ControlNetStableDiffusionProcessingImg2Img"]["prompt"]
+        n_prompts = data["params"]["ControlNetStableDiffusionProcessingImg2Img"]["negative_prompt"]
+        base_model_name = data["params"]["ControlNetStableDiffusionProcessingImg2Img"]["base_model_name"]
+
 
     # 创建config
     config = Config()
@@ -383,10 +375,9 @@ async def taskid2gif(task_id: str,background_tasks: BackgroundTasks):
     config.prompt = [extract_prompts(prompts)]
     config.n_prompt = [extract_prompts(n_prompts)]
     config.motion_module = ["/root/autodl-tmp/Motion_Module/mm_sd_v15.ckpt"]
-    config.steps = 35
+    config.steps = 30
     config.guidance_scale = 7.5
     config.lora_alpha = 0.8
-
 
     # 获取所有的lora_path
     lora_list = extract_loras(prompts)
@@ -404,15 +395,11 @@ async def taskid2gif(task_id: str,background_tasks: BackgroundTasks):
     # 创建任务
     animate_task_id = str(uuid.uuid4())
     args = Args(userConfig=config,task_id=animate_task_id)
-    background_tasks.add_task(txt2img,args)
+    # background_tasks.add_task(txt2img,args)
+    executor.submit(txt2img, args)
     # 支持跨域
     response = JSONResponse(
-        content={"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+task_id+".gif", "task_id": task_id},
+        content={"message": "Text to GIF conversion started, once the task completed , you can access https://oss.talesofai.cn/internal/gif/"+animate_task_id+".gif", "task_id": animate_task_id},
         headers={"Access-Control-Allow-Origin": "*"},
     )
     return response
-
-# print(background_tasks.tasks)
-@app.get("/current_task_list")
-async def current_task_list(background_tasks: BackgroundTasks):
-    return background_tasks.tasks

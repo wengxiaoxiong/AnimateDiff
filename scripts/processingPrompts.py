@@ -25,7 +25,12 @@ def get_safetensors_path(lora_name:str)->str:
         
     if result.returncode == 0:
         output = result.stdout
-        output = output.replace("\n","")
-        return output
+        # output = output.replace("\n","")
+        output_list = output.split("\n")
+        # 返回列表中.safetensors结尾的第一个
+        for item in output_list:
+            if item.endswith(".safetensors"):
+                return item
+        return output_list[0]
     else:
         return f"{result.stderr}"
